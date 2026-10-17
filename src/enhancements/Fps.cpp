@@ -843,11 +843,26 @@ static int __fastcall LeerFrenadoVuelo(void* parametros, void*, int clave, float
     return resultado;
 }
 
+static bool DisparoContinuo()
+{
+    const uint8_t* juego = *(const uint8_t* const*)kJuego;
+
+    if(!juego){
+        return false;
+    }
+
+    const uint8_t* modo = *(const uint8_t* const*)(juego + 0x250);
+
+    if(!modo){
+        return false;
+    }
+
+    return modo[157] && modo[156] && *(const int*)(modo + 160) == 3;
+}
+
 static int __fastcall SpreadArma(uint8_t* arma, void*, unsigned int pasoMs, char sinDisparo)
 {
-    const int tipoSpread = *(const int*)(arma + 0x148);
-
-    if(!fisicaActiva || tipoSpread != 2 || pasoMs == 0){
+    if(!fisicaActiva || pasoMs == 0 || sinDisparo || DisparoContinuo()){
         return spreadArma(arma, pasoMs, sinDisparo);
     }
 
