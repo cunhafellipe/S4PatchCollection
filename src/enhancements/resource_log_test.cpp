@@ -819,51 +819,6 @@ static HANDLE WINAPI HookCreateFileA(LPCSTR path, DWORD access, DWORD share,
 }
 
 // ----------------------------------------------------------------------------
-// 12. Auto-Trimmer & Inactive Resource Purger (Inmediato y cada 1 Minuto)
-// ----------------------------------------------------------------------------
-static DWORD WINAPI AutoPurgeThread(LPVOID)
-{
-    Sleep(3000);
-    _heapmin();
-    SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
-
-    HANDLE hProcess = GetCurrentProcess();
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))) {
-        printf("\n>>> [AUTO-FLUSH POST-ARRANQUE (3s)] RAM reducida a: %.2f MB <<<\n",
-            pmc.WorkingSetSize / (1024.0 * 1024.0));
-        printf(">>> [STATS] Probes O(1) Evitados: %ld | Decompress Hits: %ld | XMLs Cortados: %ld <<<\n\n",
-            ResExistsHits, DecompressHits, XmlCuts);
-    }
-
-    while (true) {
-        Sleep(60000); // 1 minuto
-
-        EnterCriticalSection(&CacheLock);
-        if (CachedBytes > 16u * 1024u * 1024u) {
-            for (auto it = ResourceCache.begin(); it != ResourceCache.end(); ) {
-                if (!IsWhitelistedScn(it->first)) {
-                    CachedBytes -= it->second.size();
-                    it = ResourceCache.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-        }
-        LeaveCriticalSection(&CacheLock);
-
-        _heapmin();
-        SetProcessWorkingSetSize(hProcess, (SIZE_T)-1, (SIZE_T)-1);
-
-        if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))) {
-            printf("[AUTO-FLUSH 1min] RAM activa en pantalla: %.2f MB | Probes O(1): %ld\n",
-                pmc.WorkingSetSize / (1024.0 * 1024.0), ResExistsHits);
-        }
-    }
-    return 0;
-}
-
-// ----------------------------------------------------------------------------
 // Instalacion de Hooks
 // ----------------------------------------------------------------------------
 
@@ -988,7 +943,6 @@ static DWORD WINAPI InstallHooks(void*)
 
     printf("[Optimizer] Hooks instalados con codigo=%ld (0 = EXITO TOTAL)\n", result);
 
-    CreateThread(nullptr, 0, AutoPurgeThread, nullptr, 0, nullptr);
     return 0;
 }
 

@@ -1,3 +1,16 @@
+/*
+ * NOTE - thin ledge tolerance (toleranciaSuelo, set in LeerConfig)
+ *
+ * At 0x01252DE3 the collision routine (0x01251FE0) reads game constant 37 ("floor probe tolerance",
+ * default 0.7) and treats the actor as landed when (distance to floor / ellipsoid radius) < constant.
+ * At high fps that check fails on very thin ledges, so the actor can't stand or climb on them.
+ * That call is redirected to DevolverToleranciaSuelo, which returns toleranciaSuelo instead.
+ *
+ *   toleranciaSuelo 0.7        = original behaviour
+ *   toleranciaSuelo 1.5 - 3.0  = more tolerance, can stand on thinner ledges (too high may jitter on edges)
+ *
+ * Only the fps / fov keys are read from conf.json; every other option is a fixed value in LeerConfig.
+ */
 #define WIN32_LEAN_AND_MEAN
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
@@ -46,7 +59,19 @@ static const uintptr_t kRelojJuego = 0x01B36D90;
 static const uintptr_t kFisicaActor = 0x00FAE600;
 static const uintptr_t kMoverActor = 0x00FA3960;
 static const uintptr_t kRetornoMovimientoAire = 0x00FAED67;
+static const uintptr_t kRetornoMovimientoSuelo = 0x00FAE80E;
 static const uintptr_t kLlamadaGravedad = 0x00FAEC26;
+static const uintptr_t kLlamadaToleranciaSuelo = 0x01252DE3;
+static const uintptr_t kDecodificarProtegido = 0x00F2E7C0;
+static volatile float toleranciaSuelo = 0.7f;
+
+static __declspec(naked) void DevolverToleranciaSuelo()
+{
+    __asm {
+        fld dword ptr [toleranciaSuelo]
+        ret
+    }
+}
 static const uintptr_t kSumarProtegido = 0x00FB6810;
 static const uintptr_t kVueloActualizar = 0x0165CA90;
 static const uintptr_t kLlamadaFrenadoVuelo = 0x0165D095;
@@ -267,17 +292,12 @@ static void LeerConfig()
     field_of_view = fov;
     center_field_of_view = LeerEntero(texto, "center_field_of_view", fov + 10);
     sprint_field_of_view = LeerEntero(texto, "sprint_field_of_view", fov + desfaseCorrer);
-    fisicaActiva = LeerEntero(texto, "physics_fix", 1) != 0;
-    registroActivo = LeerEntero(texto, "trace", 0) != 0;
-    bajaLatencia = LeerEntero(texto, "low_latency", 1) != 0;
-    mostrarMs = LeerEntero(texto, "show_ms", 0) != 0;
-
-    const int retraso = LeerEntero(texto, "actor_delay", 70);
-    retrasoActores = retraso < 0
-        ? 0
-        : retraso > 200
-            ? 200
-            : retraso;
+    fisicaActiva = true;
+    registroActivo = false;
+    bajaLatencia = true;
+    mostrarMs = false;
+    toleranciaSuelo = 3.0f;
+    retrasoActores = 70;
 }
 
 static void AplicarRetrasoActores()
@@ -788,6 +808,17 @@ static int MoverAire(uint8_t* actor, float dx, float dy, float dz, float correcc
 static int __fastcall MoverActor(uint8_t* actor, void*, float dx, float dy, float dz)
 {
     const bool esMovimientoAire = _ReturnAddress() == (void*)kRetornoMovimientoAire && fisicaActual.actor == actor;
+    const bool esMovimientoSuelo = _ReturnAddress() == (void*)kRetornoMovimientoSuelo && fisicaActual.actor == actor;
+
+    if(esMovimientoSuelo && fisicaActiva){
+        const float paso = fisicaActual.pasoSegundos;
+        const float factor = paso > 0.f && paso < kSegundosFrameOriginal
+            ? kSegundosFrameOriginal / paso
+            : 1.f;
+
+        AnotarOtroMovimiento(actor, dx, dy, dz);
+        return moverActor(actor, dx, dy < 0.f ? dy * factor : dy, dz);
+    }
 
     if(!esMovimientoAire){
         AnotarOtroMovimiento(actor, dx, dy, dz);
@@ -947,7 +978,8 @@ static bool BuildCorrecto()
         && LlamaA(kLlamadaFrameEstados, kFrameEstados)
         && LlamaA(kLlamadaGravedad, kSumarProtegido)
         && LlamaA(kLlamadaFrenadoVuelo, kLeerParametro)
-        && BytesSon(kRetornoMovimientoAire - 5, llamadaMover, sizeof(llamadaMover));
+        && BytesSon(kRetornoMovimientoAire - 5, llamadaMover, sizeof(llamadaMover))
+        && BytesSon(kRetornoMovimientoSuelo - 5, llamadaMover, sizeof(llamadaMover));
 
     return prologosBien && limitesBien && colisionBien && llamadasBien;
 }
@@ -1030,6 +1062,9 @@ static DWORD WINAPI Instalar(LPVOID)
     const bool vuelo = RedirigirLlamada(kLlamadaFrenadoVuelo, (const void*)&LeerFrenadoVuelo);
     const bool frame = RedirigirLlamada(kLlamadaFrameEstados, (const void*)&FrameEstados);
     const bool colision = RedirigirColision();
+    const bool borde = LlamaA(kLlamadaToleranciaSuelo, kDecodificarProtegido)
+        && RedirigirLlamada(kLlamadaToleranciaSuelo, (const void*)&DevolverToleranciaSuelo);
+    Registrar(borde ? "edge tolerance ok" : "edge tolerance fail");
     const LONG hooks = InstalarHooks();
 
     char linea[320] = {};
