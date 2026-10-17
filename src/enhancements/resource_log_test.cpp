@@ -928,13 +928,12 @@ static DWORD WINAPI InstallHooks(void*)
 {
     g_startTick = GetTickCount();
 
-    // Desactivar nativamente el flag GameOption[74] en sub_15A0440
-    typedef void* (__cdecl* FnGetOption)();
-    FnGetOption fnGetOpt = reinterpret_cast<FnGetOption>(0x00F2EAC0);
-    char* opt = reinterpret_cast<char*>(fnGetOpt());
-    if (opt) {
-        opt[74] = 0;
-        opt[78] = 0;
+    const bool opcionesCreadas = (*reinterpret_cast<volatile unsigned int*>(0x025BD824) & 1) != 0;
+
+    if(opcionesCreadas){
+        char* opciones = reinterpret_cast<char*>(0x025BD7C8);
+        opciones[74] = 0;
+        opciones[78] = 0;
     }
 
     puts("=================================================");
