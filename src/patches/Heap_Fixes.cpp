@@ -30,8 +30,14 @@ static void SweepHeapsLFH(bool first) {
     (void)first;
 }
 static DWORD WINAPI LfhThread(LPVOID) {
-    SweepHeapsLFH(true);
-    for (;;) { Sleep(5000); SweepHeapsLFH(false); }
+    // Do NOT sweep during startup. GetProcessHeaps() takes a snapshot and we then call
+    // HeapSetInformation on each handle; while the client is still creating and destroying
+    // heaps, one can die in between and ntdll walks a freed heap structure. That faults
+    // reading an address in ntdll's own range (0x77xxxxxx) a few milliseconds into the
+    // process. Because it is a RACE it depends on the machine, not the build: same client,
+    // same base, same DLL, and it only crashes where startup loses the race.
+    Sleep(5000);
+    for (;;) { SweepHeapsLFH(false); Sleep(5000); }
 }
 
 typedef void* (__fastcall* tA)(void*, void*, int);

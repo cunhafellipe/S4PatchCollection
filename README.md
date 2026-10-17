@@ -41,3 +41,23 @@ change it in the vcxproj if your client lives elsewhere.
 - `patches/fix_s2_x7decrypt.cpp` - S2: encrypted .x7 decrypt (0x1B42C50) underflows
   (Size-8)>>2 on a <8-byte file (OOB read) and allocs the first-4-bytes size (~4GB
   OOM). Gates Size>=8 and SEH-wraps the alloc throw.
+
+## Enhancements
+
+- `enhancements/Fps.cpp` - unlocks the frame rate (`max_framerate` in
+  `conf.json`, up to 1000) and keeps the physics identical to 60 fps. The
+  client integrates movement with whole-millisecond frame times and constants
+  tuned for 60 fps, so above that the collision skin, gravity, fly drag and the
+  one-frame air slam drift. Each one is corrected where it is computed, and the
+  limiter waits on the game clock at the start of the frame to keep input lag
+  low. Also sets the normal, center and sprint field of view.
+- `enhancements/hd_text.cpp` - redraws the client's text with D3DX fonts at
+  screen resolution and draws chat emoji (`:)`, `:D`, `<3`...) from
+  `<game folder>\emoji\` through `emoji.cpp`. `activarTextoHd` and
+  `activarEmoji` turn each one off. `text_languages.cpp` shapes Arabic and
+  right-to-left text and picks a font that covers CJK and Indic scripts.
+- `enhancements/resource_log_test.cpp` - resource optimizer. During boot it
+  skips the client's mass scene preload except for the scenes listed in
+  `whitelist_code.inc`, which still preload; everything else loads on demand
+  the first time the game asks for it. Shop, save and collection-book files are
+  never cut.

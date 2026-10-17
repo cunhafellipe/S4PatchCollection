@@ -4,10 +4,11 @@
 #include "../s4_base.h"
 #include <string>
 #include <unordered_map>
+#include <algorithm>
 
 namespace
 {
-    typedef bool(__cdecl* tFileExists)(const char*);
+    typedef char(__cdecl* tFileExists)(const char*);
     const uintptr_t FILE_EXISTS = 0x01B7AFB0;
     tFileExists oFileExists = nullptr;
 
@@ -16,6 +17,16 @@ namespace
 
     volatile LONG g_served = 0;
     volatile LONG g_disk   = 0;
+
+    std::string CanonicalPath(const char* path)
+    {
+        if (!path) return {};
+        std::string key(path);
+        std::replace(key.begin(), key.end(), '\\', '/');
+        std::transform(key.begin(), key.end(), key.begin(),
+            [](unsigned char c) { return (char)std::tolower(c); });
+        return key;
+    }
 
     bool IsReadOnlyResource(const char* p)
     {
@@ -28,8 +39,10 @@ namespace
         if (!path || !IsReadOnlyResource(path))
             return oFileExists(path);
 
+        const std::string key = CanonicalPath(path);
+
         AcquireSRWLockShared(&g_lock);
-        auto it = g_cache.find(path);
+        auto it = g_cache.find(key);
         bool found = (it != g_cache.end());
         bool cached = found ? it->second : false;
         ReleaseSRWLockShared(&g_lock);
@@ -39,10 +52,12 @@ namespace
             return cached;
         }
 
-        bool ret = oFileExists(path);
+        const char caller[16] = {};
+        (void)caller;
+        char ret = oFileExists(path);
         InterlockedIncrement(&g_disk);
         AcquireSRWLockExclusive(&g_lock);
-        g_cache[path] = ret;
+        g_cache[key] = ret != 0;
         ReleaseSRWLockExclusive(&g_lock);
         return ret;
     }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -16,7 +16,7 @@
     <ProjectGuid>{a3f6b0a1-5c2e-4a9a-8b0e-1f2a3b4c5d6e}</ProjectGuid>
     <RootNamespace>s4fixes</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>sneoz</ProjectName>
+    <ProjectName>fixes</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -50,8 +50,8 @@
     <TargetExt>.asi</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>..\..\Users\sneo\Desktop\S4 Seasons client\S4 Clients\S4League %2816.11.2017 by HellaHell%29\S4League</OutDir>
-    <TargetName>sneoz</TargetName>
+    <OutDir>..\..\..\Clientes\Vanilla limpio nada</OutDir>
+    <TargetName>fixes</TargetName>
     <TargetExt>.asi</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -61,14 +61,15 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\third_party\Detours-main\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\third_party\Detours-main\include;$(ProjectDir)..\third_party\dx9\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\third_party;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\third_party;$(ProjectDir)..\third_party\dx9\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>detours.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>d3dx9_43.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -80,7 +81,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\third_party\Detours-main\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\third_party\Detours-main\include;$(ProjectDir)..\third_party\dx9\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -88,12 +89,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\third_party;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\third_party;$(ProjectDir)..\third_party\dx9\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>detours.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>d3dx9_43.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="matchmaking_hotkeys.cpp" />
     <ClCompile Include="patches\Enchant_OOB_Fix.cpp" />
     <ClCompile Include="patches\Arcade_StackOverflow_Fix.cpp" />
     <ClCompile Include="patches\Arcade_Alloc_Fix.cpp" />
@@ -112,6 +115,7 @@
     <ClCompile Include="patches\IDocument_Reload_Leak_Fix.cpp" />
     <ClCompile Include="patches\XmlOverRead_Guard.cpp" />
     <ClCompile Include="patches\BattlEye_Bypass.cpp" />
+    <ClCompile Include="patches\CollectionBook_Cyan_Fix.cpp" />
     <ClCompile Include="patches\Heap_Fixes.cpp" />
     <ClCompile Include="overlay\Overlay.cpp" />
     <ClCompile Include="overlay\imgui\imgui.cpp" />
@@ -121,7 +125,15 @@
     <ClCompile Include="overlay\imgui\imgui_impl_dx9.cpp" />
     <ClCompile Include="overlay\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="enhancements\Fps.cpp" />
+    <ClCompile Include="enhancements\resource_log_test.cpp" />
+    <ClCompile Include="enhancements\hd_text.cpp" />
+    <ClCompile Include="enhancements\text_languages.cpp" />
+    <ClCompile Include="enhancements\emoji.cpp" />
+    <ClCompile Include="enhancements\AdminConsole.cpp" />
+    <ClCompile Include="enhancements\ChaserTraining.cpp" />
     <ClCompile Include="enhancements\New_Actor_State.cpp" />
+    <ClCompile Include="enhancements\Xui_Hot_Reload.cpp" />
+    <ClCompile Include="enhancements\X7_Hot_Reload.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
